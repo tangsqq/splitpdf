@@ -4,118 +4,439 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📑</text></svg>">
+        href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;📑&lt;/text&gt;&lt;/svg&gt;">
     <title>File Processing Hub</title>
     <style>
+        :root {
+            --ink: #0d0d0d;
+            --paper: #ffffff;
+            --bg: #fafaf9;
+            --muted: #7a7a76;
+            --line: #d8d6d0;
+            --accent: #d64545;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background-color: var(--bg);
-            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-            background-size: 20px 20px;
             margin: 0;
-            color: #1e293b;
-            min-height: 100vh;
+            color: var(--ink);
+            background-color: var(--bg);
+            overflow: hidden;
         }
 
-        .container {
-            text-align: center;
-            width: 100%;
-            max-width: 900px;
-            padding: 20px;
-        }
-
-        h1 {
-            color: #1a1a1a;
-            margin-bottom: 40px;
-            font-weight: 600;
-            letter-spacing: -1px;
-        }
-
-        .card-group {
+        /* split screen layout */
+        .desk {
+            height: 100vh;
             display: flex;
-            gap: 100px;
-            justify-content: center;
-            margin-top: 100px;
         }
 
-        .card {
-            background: white;
-            padding: 40px 50px;
-            border-radius: 20px;
+        .pane {
             flex: 1;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
+            position: relative;
+            background: var(--paper);
             text-decoration: none;
-            color: #333;
-            border: 1px solid #eee;
-            border-color: #000;
+            color: var(--ink);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            min-height: 200px;
+            padding: 40px;
+            transition: flex-grow 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease;
+            opacity: 0;
+            animation: paneIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        .card:hover {
-            transform: translateY(-13px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        .pane:first-child {
+            border-right: 1px solid var(--line);
+            background-image: radial-gradient(#e2e8e2 1px, transparent 1px);
+            background-size: 22px 22px;
+            animation-delay: 0.05s;
         }
 
-        .card i {
-            font-size: 50px;
-            color: #000;
-            margin-bottom: 25px;
+        .pane:last-child {
+            background: var(--ink);
+            color: var(--paper);
+            background-image: radial-gradient(#2a2a2a 1px, transparent 1px);
+            background-size: 22px 22px;
+            animation-delay: 0.18s;
         }
 
-        .card h3 {
-            margin: 10px 0;
-            font-size: 25px;
-            color: #111;
+        @keyframes paneIn {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .card p {
-            font-size: 15px;
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 10px;
-            text-align: center;
+        .pane:hover {
+            flex-grow: 1.15;
+        }
+
+        .fold {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 46px;
+            height: 46px;
+            background: rgba(0, 0, 0, 0.05);
+            clip-path: polygon(100% 0, 0 0, 100% 100%);
+            transition: width 0.35s ease, height 0.35s ease;
+            border-left: 1px solid currentColor;
+            border-bottom: 1px solid currentColor;
+            opacity: 0.35;
+        }
+
+        .pane:last-child .fold {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .pane:hover .fold {
+            width: 90px;
+            height: 90px;
+        }
+
+        .content {
             width: 100%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .btn {
-            display: inline-block;
-            padding: 10px 24px;
-            background: #000;
-            color: white;
-            border-radius: 8px;
+        .stack-scene {
+            position: relative;
+            width: 150px;
+            height: 120px;
+            margin-bottom: 38px;
+        }
+
+        .page-mini {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 62px;
+            height: 82px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate(-50%, -50%) rotate(var(--r, 0deg));
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .page-mini i {
+            font-size: 70px;
+            color: var(--ink);
+        }
+
+        .page-mini span {
+            position: absolute;
+            bottom: 5px;
+            right: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: var(--muted);
+        }
+
+        .page-mini:nth-child(1) {
+            --r: -10deg;
+            z-index: 1;
+        }
+
+        .page-mini:nth-child(2) {
+            --r: -2deg;
+            z-index: 2;
+        }
+
+        .page-mini:nth-child(3) {
+            --r: 6deg;
+            z-index: 3;
+        }
+
+        .pane:first-child:hover .page-mini:nth-child(1) {
+            transform: translate(calc(-50% - 78px), -50%) rotate(-6deg);
+        }
+
+        .pane:first-child:hover .page-mini:nth-child(2) {
+            transform: translate(calc(-50% - 40px), -50%) rotate(-5deg);
+        }
+
+        .pane:first-child:hover .page-mini:nth-child(3) {
+            transform: translate(calc(-50% + 40px), -50%) rotate(5deg);
+        }
+
+        .scissor-icon {
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(10px) rotate(0deg);
+            font-size: 20px;
+            color: var(--muted);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.5s ease;
+        }
+
+        .pane:first-child:hover .scissor-icon {
+            opacity: 1;
+            transform: translateX(-10px) rotate(90deg);
+        }
+
+        .morph-scene {
+            position: relative;
+            width: 220px;
+            height: 130px;
+            margin-bottom: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .morph-badge {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+        }
+
+        .morph-badge i {
+            position: absolute;
+            opacity: 0;
+            animation: cycle 6s infinite;
+        }
+
+        .morph-badge i:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .morph-badge i:nth-child(2) {
+            animation-delay: 1.5s;
+        }
+
+        .morph-badge i:nth-child(3) {
+            animation-delay: 3s;
+        }
+
+        .morph-badge i:nth-child(4) {
+            animation-delay: 4.5s;
+        }
+
+        @keyframes cycle {
+
+            0%,
+            4% {
+                opacity: 0;
+                transform: scale(0.6) rotate(-15deg);
+            }
+
+            8%,
+            20% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+
+            25%,
+            100% {
+                opacity: 0;
+                transform: scale(0.6) rotate(15deg);
+            }
+        }
+
+        @keyframes pulseArrows {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: translateX(0);
+            }
+
+            50% {
+                opacity: 0.9;
+                transform: translateX(3px);
+            }
+        }
+
+        .pane h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0 0 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .pane p {
             font-size: 14px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: background 0.3s;
+            opacity: 0.65;
+            line-height: 1.6;
+            margin: 0 0 28px;
         }
 
-        .card:hover .btn {
-            background: #333;
+        .arrow {
+            font-size: 16px;
+            transition: transform 0.35s ease;
+        }
+
+        .pane:hover .arrow {
+            transform: translateX(6px);
         }
 
         /* Mobile Responsive */
-        @media (max-width: 580px) {
-            .card-group {
-                flex-direction: column;
+        @media (max-width: 640px) {
+            body {
+                overflow: auto;
             }
 
-            body {
+            .desk {
+                flex-direction: column;
                 height: auto;
-                padding: 40px 0;
+            }
+
+            .pane {
+                min-height: 60vh;
+            }
+
+            .pane:first-child {
+                border-right: none;
+                border-bottom: 1px solid var(--line);
+            }
+
+            header {
+                position: static;
+                transform: none;
+                padding: 20px 0 0;
+            }
+        }
+
+        /* update note */
+        .update-note {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 280px;
+            z-index: 100;
+            transform: rotate(-2deg) translateY(140%);
+            transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+
+        .update-note.show {
+            transform: rotate(-2deg) translateY(0);
+            pointer-events: auto;
+        }
+
+        .update-note .tape {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-3deg);
+            width: 70px;
+            height: 22px;
+            background: repeating-linear-gradient(135deg,
+                    rgba(13, 13, 13, 0.06),
+                    rgba(13, 13, 13, 0.06) 4px,
+                    rgba(13, 13, 13, 0.1) 4px,
+                    rgba(13, 13, 13, 0.1) 8px);
+            border: 1px solid var(--line);
+        }
+
+        .update-note .card {
+            position: relative;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            padding: 22px 20px 20px;
+            box-shadow: 0 14px 30px rgba(13, 13, 13, 0.18);
+        }
+
+        .update-note .card::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 18px;
+            height: 18px;
+            background: var(--bg);
+            clip-path: polygon(100% 0, 0 100%, 100% 100%);
+            border-top: 1px solid var(--line);
+            border-left: 1px solid var(--line);
+        }
+
+        .update-note .stamp {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.14em;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .update-note h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0 0 10px;
+            letter-spacing: -0.01em;
+        }
+
+        .update-note ul {
+            margin: 0 0 16px;
+            padding-left: 16px;
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+
+        .update-note li {
+            margin-bottom: 5px;
+        }
+
+        .update-note button {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            background: none;
+            border: none;
+            border-bottom: 1px solid var(--ink);
+            padding: 0 0 2px;
+            cursor: pointer;
+            color: var(--ink);
+            transition: opacity 0.2s ease;
+        }
+
+        .update-note button:hover {
+            opacity: 0.6;
+        }
+
+        @media (max-width: 640px) {
+            .update-note {
+                right: 16px;
+                bottom: 16px;
+                left: 16px;
+                width: auto;
             }
         }
     </style>
@@ -123,22 +444,67 @@
 
 <body>
 
-    <div class="container">
-        <h1>File Toolset Dashboard</h1>
-
-        <div class="card-group">
-            <a href="split.php" class="card">
-                <i class="fa-solid fa-table-columns"></i>
+    <div class="desk">
+        <a href="split.php" class="pane">
+            <div class="fold"></div>
+            <div class="content">
+                <div class="stack-scene">
+                    <i class="fa-solid fa-scissors scissor-icon"></i>
+                    <div class="page-mini"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="page-mini"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="page-mini"><i class="fa-solid fa-file-lines"></i></div>
+                </div>
                 <h3>File Splitter</h3>
-            </a>
+            </div>
+        </a>
 
-            <a href="convert.php" class="card">
-                <i class="fa-solid fa-right-left"></i>
+        <a href="convert.php" class="pane">
+            <div class="fold"></div>
+            <div class="content">
+                <div class="morph-scene">
+                    <div class="morph-badge">
+                        <i class="fa-solid fa-file-pdf" style="color:#e0e0e0;"></i>
+                        <i class="fa-solid fa-file-word" style="color:#e0e0e0;"></i>
+                        <i class="fa-solid fa-file-excel" style="color:#e0e0e0;"></i>
+                        <i class="fa-solid fa-file-image" style="color:#e0e0e0;"></i>
+                    </div>
+                    <i class="fa-solid fa-right-left morph-arrows"></i>
+                    <div class="morph-badge">
+                        <i class="fa-solid fa-file-powerpoint" style="color:#e0e0e0; animation-delay:0.75s;"></i>
+                        <i class="fa-solid fa-file-excel" style="color:#e0e0e0; animation-delay:2.25s;"></i>
+                        <i class="fa-solid fa-file-pdf" style="color:#e0e0e0; animation-delay:3.75s;"></i>
+                        <i class="fa-solid fa-file-word" style="color:#e0e0e0; animation-delay:5.25s;"></i>
+                    </div>
+                </div>
                 <h3>File Converter</h3>
-            </a>
-        </div>
-
+            </div>
+        </a>
     </div>
+
+    <div id="updateNote" class="update-note">
+        <div class="tape"></div>
+        <div class="card">
+            <span class="stamp">MEMO</span>
+            <!-- <h3>File Converter, updated</h3> -->
+            <ul>
+                <li>Have any feedback?</li>
+                <li>Bug reports and feature suggestions are always welcome.</li>
+            </ul>
+            </ul>
+            <button onclick="document.getElementById('updateNote').classList.remove('show')">Dismiss</button>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('seen-update-2026-07')) {
+                setTimeout(() => {
+                    document.getElementById('updateNote').classList.add('show');
+                }, 500);
+                localStorage.setItem('seen-update-2026-07', 'true');
+            }
+        });
+    </script>
 
 </body>
 
