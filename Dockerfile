@@ -1,7 +1,7 @@
-# 使用 PHP 8.2 配合 Apache
+# Use PHP 8.2 with Apache
 FROM php:8.2-apache
 
-# 1. 安装系统依赖：LibreOffice, Imagick, 字体以及压缩库
+# 1. Install system dependencies: LibreOffice, Imagick, fonts, and compression libraries
 RUN apt-get update && apt-get install -y \
     libmagickwand-dev \
     libpng-dev \
@@ -16,33 +16,33 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 安装并启用 PHP 扩展
+# 2. Install and enable the required PHP extensions
 RUN pecl install imagick \
     && docker-php-ext-enable imagick \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd zip xml bcmath
 
-# 3. 启用 Apache 重写模块
+# 3. Enable the Apache rewrite module
 RUN a2enmod rewrite
 
-# 4. 安装 Composer
+# 4. Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 5. 设置工作目录
+# 5. Set the working directory
 WORKDIR /var/www/html
 
-# 6. 复制项目文件
+# 6. Copy the project files
 COPY . .
 
-# 7. 安装 PHP 依赖
+# 7. Install PHP dependencies
 RUN composer install --no-interaction --optimize-autoloader
 
-# 8. 创建临时目录并开放最高权限（用于存放上传的文件和转换结果）
+# 8. Create a temporary directory and assign full permissions to allow storage of uploaded files and generated conversion results
 RUN mkdir -p /var/www/html/temp_uploads && \
     chmod -R 777 /var/www/html/temp_uploads
 
-# 9. 自动适配 Render 的端口 (Render 会动态分配 $PORT)
+# 9. Automatically adapt to Render's assigned port (Render dynamically assigns the $PORT environment variable)
 RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
 
-# 暴露端口
+# Expose the application port
 EXPOSE 80
