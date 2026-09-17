@@ -10,6 +10,7 @@
         "ext-zip": "*",
         "phpoffice/phpspreadsheet": "^2.1",
         "phpoffice/phpword": "^1.4",
+        "smalot/pdfparser": "^2.12",
         "tecnickcom/tcpdf": "^6.6"
     },
     "config": {
