@@ -497,12 +497,9 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', () => {
-            if (!localStorage.getItem('seen-update-2026-07')) {
-                setTimeout(() => {
-                    document.getElementById('updateNote').classList.add('show');
-                }, 500);
-                localStorage.setItem('seen-update-2026-07', 'true');
-            }
+            setTimeout(() => {
+                document.getElementById('updateNote').classList.add('show');
+            }, 500);
         });
     </script>
 
