@@ -285,6 +285,52 @@ if (isset($_FILES['excel_file'])) {
             animation: modalHide 0.2s ease-in forwards;
         }
 
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+        }
+
+        .loading-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: white;
+            padding: 45px 50px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        @keyframes thumbFadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes cardPopIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
         #help-content {
             text-align: left;
             font-size: 14px;
@@ -316,7 +362,7 @@ if (isset($_FILES['excel_file'])) {
 
         .btn {
             padding: 10px 24px;
-            border-radius: 12px;
+            border-radius: 20px;
             border: none;
             cursor: pointer;
             font-weight: 600;
@@ -341,6 +387,7 @@ if (isset($_FILES['excel_file'])) {
             transform: translateY(-1px);
         }
 
+
         .btn-clear {
             background: #fff;
             color: var(--primary, #64748b);
@@ -351,6 +398,90 @@ if (isset($_FILES['excel_file'])) {
         .btn-clear:hover {
             background: var(--bg);
             opacity: 0.8;
+        }
+
+        .btn-prev {
+            background: #fff;
+            color: var(--primary, #1e293b);
+            border: 1.5px dashed var(--primary, #cbd5e1);
+            border-radius: 20px;
+        }
+
+        .btn-prev:hover {
+            background: var(--bg);
+            border-style: solid;
+        }
+
+        #previewAllBtn,
+        #downloadAllBtn,
+        #clearAllBtn {
+            animation:
+                btnAppear 0.35s ease,
+                btnFloat 3s ease-in-out infinite 0.35s;
+        }
+
+        @keyframes btnAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Preview All modal */
+        .preview-all-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            max-height: 78vh;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .preview-all-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .preview-all-thumb-wrap {
+            width: 100%;
+            aspect-ratio: 3 / 4;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-all-thumb-wrap img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .preview-all-name {
+            margin-top: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preview-all-count {
+            font-size: 12.5px;
+            color: #94a3b8;
+            margin-top: 3px;
         }
 
         #file-selector {
@@ -386,8 +517,6 @@ if (isset($_FILES['excel_file'])) {
             max-width: 1200px;
             margin: 0 auto;
             position: relative;
-            counter-reset: page-counter;
-            /* Use CSS counter for numbering */
         }
 
         .drop-hint {
@@ -421,22 +550,8 @@ if (isset($_FILES['excel_file'])) {
         .workspace-grid.drag-active {
             border-color: var(--primary);
             background: rgba(255, 255, 255, 0.75);
-            animation: workspacePulse 0.9s ease-in-out infinite;
         }
 
-        @keyframes workspacePulse {
-
-            0%,
-            100% {
-                box-shadow: inset 0 0 0 0 rgba(37, 99, 235, 0.15);
-            }
-
-            50% {
-                box-shadow: inset 0 0 0 8px rgba(37, 99, 235, 0.06);
-            }
-        }
-
-        /* Show segment header only when split is active on previous card */
         .segment-header {
             grid-column: 1 / -1;
             display: none;
@@ -528,11 +643,7 @@ if (isset($_FILES['excel_file'])) {
             transition: background 0.3s ease;
         }
 
-        /* Auto-generate page number badge */
-        .badge::after {
-            counter-increment: page-counter;
-            content: "#" counter(page-counter);
-        }
+        /* Page number badge (text is now set directly by JS, per split group) */
 
         .rotate-btn {
             position: absolute;
@@ -757,14 +868,32 @@ if (isset($_FILES['excel_file'])) {
             </label>
             <input type="file" id="file-selector"
                 accept="application/pdf, .xlsx, .xls, .doc, .docx, .ppt, .pptx, .jpg, .jpeg, .png" multiple>
-            <button class="btn btn-main" onclick="openPdfEditor()">Edit PDF</button>
-            <button class="btn btn-main" onclick="exportPDF()">Download All</button>
-            <button class="btn btn-clear" onclick="location.reload()">Clear All</button>
+            <button class="btn btn-prev" id="previewAllBtn" onclick="showPreviewAll()" style="display:none;">Preview
+                All</button>
+            <button class="btn btn-main" id="downloadAllBtn" onclick="exportPDF()" style="display:none;">
+                Download All
+            </button>
+
+            <button class="btn btn-clear" id="clearAllBtn" onclick="confirmClearAll()" style="display:none;">
+                Clear All
+            </button>
         </div>
     </div>
 
     <div id="workspace" class="workspace-grid">
         <div class="drop-hint" id="drop-hint"><i class="fa-solid fa-file-arrow-up"></i>Drag and Drop files here</div>
+    </div>
+
+    <div id="previewAllModal" class="modal-overlay">
+        <div
+            style="background: white; padding: 28px; border-radius: 25px; max-width: 1300px; width: 95%; max-height: 90vh;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+                <h3 style="margin:0;">Preview All Files</h3>
+                <i class="fa fa-times" style="cursor:pointer; font-size:18px; color:#94a3b8;"
+                    onclick="closePreviewAll()"></i>
+            </div>
+            <div id="previewAllBody" class="preview-all-grid"></div>
+        </div>
     </div>
 
     <div id="customAlert" class="modal-overlay">
@@ -776,6 +905,46 @@ if (isset($_FILES['excel_file'])) {
         </div>
     </div>
 
+    <div id="loadingOverlay">
+        <div class="loading-box">
+            <i class="fa fa-spinner fa-spin"
+                style="font-size:28px; color:var(--primary, #1e293b); margin-bottom:14px; display:inline-block;"></i>
+            <p id="loadingTitle" style="margin:0; font-weight:bold; color:#333;">Processing...</p>
+            <p style="margin:10px 0 0; font-size:13px; color:#999;">Please wait...</p>
+        </div>
+    </div>
+
+    <div id="confirmOverlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255, 255, 255, 0.85); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center;">
+        <div class="loading-box" style="position:static; transform:none; max-width:320px; width:90%;">
+            <i class="fa-solid fa-triangle-exclamation"
+                style="font-size:50px; color:#ef4444; margin-bottom:20px; display:inline-block;"></i>
+            <p style="margin:0; font-weight:bold; color:#ef4444; margin-bottom:20px;">Clear All Files?</p>
+            <div style="display:flex; gap:20px; justify-content:center;">
+                <button class="btn btn-clear" style="flex:1; justify-content:center;"
+                    onclick="closeConfirmClearAll()">Cancel</button>
+                <button class="btn" style="flex:1; justify-content:center; background:#ef4444; color:#fff;"
+                    onclick="location.reload()">Yes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="homeConfirmOverlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255, 255, 255, 0.85); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center;">
+        <div class="loading-box" style="position:static; transform:none; max-width:320px; width:90%;">
+            <i class="fa-solid fa-triangle-exclamation"
+                style="font-size:50px; color:#ef4444; margin-bottom:20px; display:inline-block;"></i>
+            <p style="margin:0; font-weight:bold; color:#ef4444; margin-bottom:20px;">Leave this page?</p>
+            <p style="margin:0 0 20px; font-size:13px; color:#666;">Your uploaded files will be lost.</p>
+            <div style="display:flex; gap:20px; justify-content:center;">
+                <button class="btn btn-clear" style="flex:1; justify-content:center;"
+                    onclick="closeHomeConfirm()">Cancel</button>
+                <button class="btn" style="flex:1; justify-content:center; background:#ef4444; color:#fff;"
+                    onclick="window.location.href='index.html'">Yes</button>
+            </div>
+        </div>
+    </div>
+
     <div id="previewModal" class="modal-overlay" onclick="closePreview()">
         <button class="nav-arrow" id="prevArrow" onclick="navigatePreview(-1, event)"><i
                 class="fa fa-chevron-left"></i></button>
@@ -784,203 +953,8 @@ if (isset($_FILES['excel_file'])) {
                 class="fa fa-chevron-right"></i></button>
     </div>
 
-    <a href="index.html" class="home-btn" title="Back to Home"><i class="fa fa-home"></i></a>
-
-
-    <style>
-        /* Adobe-style PDF editor */
-        #pdfEditorModal {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, .94);
-            z-index: 20000;
-            display: none;
-            flex-direction: column;
-            color: #fff;
-        }
-
-        #pdfEditorModal.open {
-            display: flex;
-        }
-
-        .pdf-editor-topbar {
-            height: 58px;
-            flex: 0 0 58px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 14px;
-            background: #111827;
-            border-bottom: 1px solid #374151;
-        }
-
-        .pdf-editor-title {
-            font-weight: 700;
-            margin-right: auto;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 280px;
-        }
-
-        .pdf-editor-tool {
-            border: 1px solid #4b5563;
-            background: #1f2937;
-            color: #e5e7eb;
-            border-radius: 8px;
-            height: 36px;
-            min-width: 38px;
-            padding: 0 11px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        .pdf-editor-tool:hover,
-        .pdf-editor-tool.active {
-            background: #374151;
-            border-color: #94a3b8;
-        }
-
-        .pdf-editor-tool.close {
-            background: #7f1d1d;
-            border-color: #991b1b;
-        }
-
-        .pdf-editor-stage {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: auto;
-            padding: 24px;
-        }
-
-        #pdfEditorCanvas {
-            background: white;
-            box-shadow: 0 12px 45px rgba(0, 0, 0, .45);
-            cursor: crosshair;
-            max-width: none;
-        }
-
-        .pdf-editor-status {
-            height: 42px;
-            flex: 0 0 42px;
-            background: #111827;
-            border-top: 1px solid #374151;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            font-size: 13px;
-        }
-
-        .pdf-editor-status button {
-            border: 0;
-            background: transparent;
-            color: #e5e7eb;
-            cursor: pointer;
-        }
-
-        .pdf-editor-color {
-            width: 30px;
-            height: 30px;
-            border: 0;
-            padding: 0;
-            background: transparent;
-            cursor: pointer;
-        }
-
-        .pdf-editor-size {
-            width: 78px;
-            accent-color: #60a5fa;
-        }
-
-        .pdf-editor-help {
-            color: #9ca3af;
-            font-size: 12px;
-        }
-
-        @media (max-width: 900px) {
-            .pdf-editor-tool span {
-                display: none;
-            }
-
-            .pdf-editor-title {
-                max-width: 120px;
-            }
-
-            .pdf-editor-stage {
-                padding: 10px;
-            }
-        }
-    </style>
-
-    <!-- PDF Editor modal -->
-    <div id="pdfEditorModal">
-        <div class="pdf-editor-topbar">
-            <button class="pdf-editor-tool" onclick="editorPreviousPage()" title="Previous page">
-                <i class="fa fa-chevron-left"></i>
-            </button>
-            <button class="pdf-editor-tool" onclick="editorNextPage()" title="Next page">
-                <i class="fa fa-chevron-right"></i>
-            </button>
-            <div class="pdf-editor-title" id="pdfEditorTitle">Edit PDF</div>
-
-            <button class="pdf-editor-tool active" data-editor-tool="select" onclick="setEditorTool('select')"
-                title="Select">
-                <i class="fa fa-arrow-pointer"></i><span>Select</span>
-            </button>
-            <button class="pdf-editor-tool" data-editor-tool="text" onclick="setEditorTool('text')" title="Add text">
-                <i class="fa fa-font"></i><span>Text</span>
-            </button>
-            <button class="pdf-editor-tool" data-editor-tool="highlight" onclick="setEditorTool('highlight')"
-                title="Highlight">
-                <i class="fa fa-highlighter"></i><span>Highlight</span>
-            </button>
-            <button class="pdf-editor-tool" data-editor-tool="draw" onclick="setEditorTool('draw')" title="Draw">
-                <i class="fa fa-pen"></i><span>Draw</span>
-            </button>
-            <button class="pdf-editor-tool" data-editor-tool="whiteout" onclick="setEditorTool('whiteout')"
-                title="Whiteout">
-                <i class="fa fa-eraser"></i><span>Whiteout</span>
-            </button>
-            <input id="pdfEditorColor" class="pdf-editor-color" type="color" value="#ef4444" title="Color">
-            <input id="pdfEditorSize" class="pdf-editor-size" type="range" min="1" max="20" value="3"
-                title="Brush/text size">
-
-            <button class="pdf-editor-tool" onclick="undoEditorEdit()" title="Undo">
-                <i class="fa fa-rotate-left"></i>
-            </button>
-            <button class="pdf-editor-tool" onclick="clearEditorPage()" title="Clear edits on this page">
-                <i class="fa fa-trash"></i>
-            </button>
-            <button class="pdf-editor-tool" onclick="editorZoom(-1)" title="Zoom out">
-                <i class="fa fa-minus"></i>
-            </button>
-            <button class="pdf-editor-tool" onclick="editorZoom(1)" title="Zoom in">
-                <i class="fa fa-plus"></i>
-            </button>
-            <button class="pdf-editor-tool" onclick="saveEditorChanges()" title="Save edits">
-                <i class="fa fa-check"></i><span>Save</span>
-            </button>
-            <button class="pdf-editor-tool close" onclick="closePdfEditor()" title="Close">
-                <i class="fa fa-times"></i><span>Close</span>
-            </button>
-        </div>
-
-        <div class="pdf-editor-stage" id="pdfEditorStage">
-            <canvas id="pdfEditorCanvas"></canvas>
-        </div>
-
-        <div class="pdf-editor-status">
-            <span id="pdfEditorPageInfo">Page 1 / 1</span>
-            <span class="pdf-editor-help">Text: click page • Highlight/Whiteout: drag • Draw: drag</span>
-        </div>
-    </div>
+    <a href="index.html" class="home-btn" title="Back to Home" onclick="return confirmGoHome()"><i
+            class="fa fa-home"></i></a>
 
     <script>
         const {
@@ -997,17 +971,6 @@ if (isset($_FILES['excel_file'])) {
             segmentNames: {},
             selectedIndices: new Set()
         };
-
-        // PDF editing state. Edits are stored separately from page thumbnails so
-        // they can be applied to the final PDF without changing the source file.
-        const pdfEdits = new Map();
-        let editorPageIndex = 0;
-        let editorTool = 'select';
-        let editorZoomLevel = 1;
-        let editorDrawing = false;
-        let editorStart = null;
-        let editorCurrentPath = [];
-        let editorBaseImage = null;
         let zoomLevel = 1,
             isDragging = false,
             startX, startY, translateX = 0,
@@ -1063,7 +1026,6 @@ if (isset($_FILES['excel_file'])) {
             document.getElementById('alertTitle').innerText = "How to Use";
             document.getElementById('alertMessage').innerHTML = helpText; // Use innerHTML for the list
 
-            // Adjust alert width for better reading
             modalContent.style.maxWidth = "500px";
 
             // Trigger animation
@@ -1089,7 +1051,7 @@ if (isset($_FILES['excel_file'])) {
         }
 
         function generateFileId() {
-            return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+            return 'page_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
         }
 
         function cloneBuffer(buffer) {
@@ -1098,32 +1060,160 @@ if (isset($_FILES['excel_file'])) {
             return dst;
         }
 
-        const workspace = document.getElementById('workspace');
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            document.addEventListener(eventName, e => {
-                e.preventDefault();
-                e.stopPropagation();
-            }, false);
-        });
-
-        workspace.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                // If dropping directly on workspace (hint area), append to end
-                if (e.target === workspace || e.target.id === 'drop-hint') {
-                    handleFiles(Array.from(files));
-                }
-            }
-        });
-
         document.getElementById('file-selector').addEventListener('change', (e) => {
             handleFiles(Array.from(e.target.files));
         });
 
+        let externalDragOverCard = null;
+        let externalDropSide = null;
+
+        workspace.addEventListener('dragover', (e) => {
+            e.preventDefault();
+
+            // Only show insertion indicator for files dragged from
+            // Windows File Explorer.
+            const hasFiles = e.dataTransfer &&
+                Array.from(e.dataTransfer.types || []).includes('Files');
+
+            if (!hasFiles) {
+                workspace.classList.add('drag-active');
+                return;
+            }
+
+            workspace.classList.add('drag-active');
+
+            const target = e.target instanceof Element
+                ? e.target
+                : null;
+
+            const card = target
+                ? target.closest('.page-card')
+                : null;
+
+            // Clear previous indicator
+            if (externalDragOverCard && externalDragOverCard !== card) {
+                externalDragOverCard.style.borderLeft = '';
+                externalDragOverCard.style.borderRight = '';
+            }
+
+            externalDragOverCard = card;
+            externalDropSide = null;
+
+            if (!card) {
+                return;
+            }
+
+            const rect = card.getBoundingClientRect();
+            const middle = rect.left + (rect.width / 2);
+
+            if (e.clientX < middle) {
+                card.style.borderLeft = '5px solid var(--primary)';
+                card.style.borderRight = '';
+                externalDropSide = 'before';
+            } else {
+                card.style.borderLeft = '';
+                card.style.borderRight = '5px solid var(--primary)';
+                externalDropSide = 'after';
+            }
+
+            // Important for Firefox/Chrome external file dragging
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        workspace.addEventListener('dragleave', (e) => {
+            // Ignore dragleave events when moving between
+            // children inside the workspace.
+            if (e.relatedTarget && workspace.contains(e.relatedTarget)) {
+                return;
+            }
+
+            workspace.classList.remove('drag-active');
+
+            if (externalDragOverCard) {
+                externalDragOverCard.style.borderLeft = '';
+                externalDragOverCard.style.borderRight = '';
+            }
+
+            externalDragOverCard = null;
+            externalDropSide = null;
+        });
+
+        workspace.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            workspace.classList.remove('drag-active');
+
+            // Clear visual insertion indicator
+            workspace.querySelectorAll('.page-card').forEach(card => {
+                card.style.borderLeft = '';
+                card.style.borderRight = '';
+            });
+
+            externalDragOverCard = null;
+
+            const files = Array.from(e.dataTransfer.files || []);
+
+            if (files.length === 0) {
+                externalDropSide = null;
+                return;
+            }
+
+            // Find the page card underneath the mouse.
+            const target = e.target instanceof Element
+                ? e.target
+                : null;
+
+            const targetCard = target
+                ? target.closest('.page-card')
+                : null;
+
+            // No page card = append to the end.
+            if (!targetCard) {
+                externalDropSide = null;
+                handleFiles(files, state.pageOrder.length);
+                return;
+            }
+
+            const cards = Array.from(
+                workspace.querySelectorAll('.page-card')
+            );
+
+            const targetIndex = cards.indexOf(targetCard);
+
+            if (targetIndex === -1) {
+                externalDropSide = null;
+                handleFiles(files, state.pageOrder.length);
+                return;
+            }
+
+            const rect = targetCard.getBoundingClientRect();
+
+            // Use the actual mouse position at drop time.
+            const middle = rect.left + (rect.width / 2);
+
+            const insertIndex =
+                e.clientX < middle
+                    ? targetIndex
+                    : targetIndex + 1;
+
+            externalDropSide = null;
+
+            handleFiles(files, insertIndex);
+        });
+
+        document.getElementById('file-selector')
+            .addEventListener('change', (e) => {
+
+                handleFiles(
+                    Array.from(e.target.files)
+                );
+
+            });
+
         async function handleFiles(files, insertIndex = -1) {
             if (files.length === 0) return;
-            showAlert("Processing files...");
+            showAlert("Processing...", false);
 
             const newPages = [];
             const newFileIds = [];
@@ -1161,6 +1251,7 @@ if (isset($_FILES['excel_file'])) {
 
                     for (let i = 0; i < pdfjsDoc.numPages; i++) {
                         newPages.push({
+                            id: generateFileId(),
                             fileId,
                             originalIdx: i,
                             rotation: 0,
@@ -1185,11 +1276,23 @@ if (isset($_FILES['excel_file'])) {
         function renderWorkspace() {
             const fragment = document.createDocumentFragment();
             workspace.innerHTML = '';
+            const previewBtn = document.getElementById('previewAllBtn');
+            const downloadBtn = document.getElementById('downloadAllBtn');
+            const clearBtn = document.getElementById('clearAllBtn');
 
             if (state.pageOrder.length === 0) {
                 workspace.innerHTML = '<div class="drop-hint" id="drop-hint"><i class="fa-solid fa-file-arrow-up"></i>Drag and Drop files here</div>';
+
+                if (previewBtn) previewBtn.style.display = 'none';
+                if (downloadBtn) downloadBtn.style.display = 'none';
+                if (clearBtn) clearBtn.style.display = 'none';
+
                 return;
             }
+
+            if (previewBtn) previewBtn.style.display = 'inline-flex';
+            if (downloadBtn) downloadBtn.style.display = 'inline-flex';
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
 
             const firstHeader = createRenameBar(-1);
             firstHeader.classList.add('force-show');
@@ -1205,6 +1308,27 @@ if (isset($_FILES['excel_file'])) {
             });
 
             workspace.appendChild(fragment);
+            renumberSegments();
+        }
+
+        function renumberSegments() {
+            const visibleHeaders = Array.from(workspace.querySelectorAll('.segment-header')).filter(h =>
+                h.classList.contains('force-show') || h.previousElementSibling.classList.contains('split-active')
+            );
+            visibleHeaders.forEach((h, i) => {
+                const input = h.querySelector('.rename-input');
+                if (input) input.placeholder = `File ${i + 1}`;
+            });
+
+            // Badge numbers restart at #1 for every split group, instead of
+            // counting straight through the whole document.
+            let posInGroup = 0;
+            Array.from(workspace.querySelectorAll('.page-card')).forEach((card) => {
+                posInGroup++;
+                const badge = card.querySelector('.badge');
+                if (badge) badge.textContent = `#${posInGroup}`;
+                if (card.classList.contains('split-active')) posInGroup = 0;
+            });
         }
 
         function createRenameBar(idx) {
@@ -1212,14 +1336,11 @@ if (isset($_FILES['excel_file'])) {
             div.className = 'segment-header';
             div.dataset.forIdx = idx;
 
-            const fileNumber = idx + 2;
-            const defaultName = `Page_${fileNumber}`;
-
             div.innerHTML = `
-                <span class="segment-label">File Name:</span>
-                <input type="text" class="rename-input" value="${state.segmentNames[idx + 1] || ''}" placeholder="${defaultName}" oninput="state.segmentNames[${idx + 1}] = this.value">
-                <button class="btn btn-main" style="height:34px; font-size:12px;" onclick="downloadSingleGroupFromDOM(${idx})">Download</button>
-            `;
+        <span class="segment-label">File Name:</span>
+        <input type="text" class="rename-input" value="${state.segmentNames[idx + 1] || ''}" placeholder="File" oninput="state.segmentNames[${idx + 1}] = this.value">
+        <button class="btn btn-main" style="height:34px; font-size:12px;" onclick="downloadSingleGroupFromDOM(${idx})">Download</button>
+    `;
             return div;
         }
 
@@ -1228,7 +1349,9 @@ if (isset($_FILES['excel_file'])) {
             card.className = 'page-card';
             card.draggable = true;
             if (state.selectedIndices.has(index)) card.classList.add('selected');
-            if (state.splits.has(index)) card.classList.add('split-active');
+            if (state.splits.has(pageObj.id)) {
+                card.classList.add('split-active');
+            }
 
             const canvasId = `canvas-${pageObj.fileId}-${pageObj.originalIdx}-${index}`;
             card.innerHTML = `
@@ -1255,15 +1378,18 @@ if (isset($_FILES['excel_file'])) {
 
             card.oncontextmenu = (e) => {
                 e.preventDefault();
+
                 if (index === state.pageOrder.length - 1) return;
 
-                if (card.classList.contains('split-active')) {
+                if (state.splits.has(pageObj.id)) {
+                    state.splits.delete(pageObj.id);
                     card.classList.remove('split-active');
-                    state.splits.delete(index);
                 } else {
+                    state.splits.add(pageObj.id);
                     card.classList.add('split-active');
-                    state.splits.add(index);
                 }
+
+                renumberSegments();
             };
 
             card.querySelector('.rotate-btn').onclick = (e) => {
@@ -1274,8 +1400,14 @@ if (isset($_FILES['excel_file'])) {
 
             card.querySelector('.delete-btn').onclick = (e) => {
                 e.stopPropagation();
+                const removedPage = state.pageOrder[index];
+
+                if (removedPage) {
+                    state.splits.delete(removedPage.id);
+                }
+
                 state.pageOrder.splice(index, 1);
-                state.selectedIndices.clear(); // Clear to avoid index mismatch
+                state.selectedIndices.clear();
                 renderWorkspace();
             };
 
@@ -1302,35 +1434,67 @@ if (isset($_FILES['excel_file'])) {
 
             card.ondrop = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
+
                 card.style.borderLeft = "";
                 card.style.borderRight = "";
 
                 const rect = card.getBoundingClientRect();
                 const relX = e.clientX - rect.left;
-                const dropInsertIndex = (relX < rect.width / 2) ? index : index + 1;
 
+                const dropInsertIndex =
+                    relX < rect.width / 2
+                        ? index
+                        : index + 1;
+
+                // File dragged from Windows/File Explorer
                 if (e.dataTransfer.files.length > 0) {
-                    // Handle external files drop between pages
-                    handleFiles(Array.from(e.dataTransfer.files), dropInsertIndex);
-                } else {
-                    // Handle internal reordering
-                    const sortedSelected = Array.from(state.selectedIndices).sort((a, b) => a - b);
-                    const itemsToMove = sortedSelected.map(i => state.pageOrder[i]);
-
-                    // Remove items
-                    for (let i = sortedSelected.length - 1; i >= 0; i--) {
-                        state.pageOrder.splice(sortedSelected[i], 1);
-                    }
-
-                    // Calculate new insert position
-                    let finalInsert = dropInsertIndex;
-                    const shift = sortedSelected.filter(i => i < dropInsertIndex).length;
-                    finalInsert -= shift;
-
-                    state.pageOrder.splice(finalInsert, 0, ...itemsToMove);
-                    state.selectedIndices.clear();
-                    renderWorkspace();
+                    handleFiles(
+                        Array.from(e.dataTransfer.files),
+                        dropInsertIndex
+                    );
+                    return;
                 }
+
+                // Existing page reordering
+                const sortedSelected = Array.from(state.selectedIndices)
+                    .sort((a, b) => a - b);
+
+                if (sortedSelected.length === 0) return;
+
+                const itemsToMove = sortedSelected.map(
+                    i => state.pageOrder[i]
+                );
+
+                for (let i = sortedSelected.length - 1; i >= 0; i--) {
+                    state.pageOrder.splice(sortedSelected[i], 1);
+                }
+
+                let finalInsert = dropInsertIndex;
+
+                const shift = sortedSelected.filter(
+                    i => i < dropInsertIndex
+                ).length;
+
+                finalInsert -= shift;
+
+                if (finalInsert < 0) {
+                    finalInsert = 0;
+                }
+
+                if (finalInsert > state.pageOrder.length) {
+                    finalInsert = state.pageOrder.length;
+                }
+
+                state.pageOrder.splice(
+                    finalInsert,
+                    0,
+                    ...itemsToMove
+                );
+
+                state.selectedIndices.clear();
+
+                renderWorkspace();
             };
 
             return card;
@@ -1341,7 +1505,7 @@ if (isset($_FILES['excel_file'])) {
                 const source = sourcePdfs.get(pageObj.fileId);
                 const page = await source.pdfjsDoc.getPage(pageObj.originalIdx + 1);
                 const viewport = page.getViewport({
-                    scale: 1.5
+                    scale: 3
                 });
                 const canvas = document.getElementById(canvasId);
                 if (!canvas) return;
@@ -1391,25 +1555,120 @@ if (isset($_FILES['excel_file'])) {
             document.getElementById('previewModal').style.display = 'none';
         }
 
-        // Export Logic 
         function splitIntoGroups() {
-            const cards = Array.from(workspace.querySelectorAll('.page-card'));
             const groups = [];
             let currentGroup = [];
 
-            cards.forEach((card, i) => {
-                currentGroup.push(state.pageOrder[i]);
-                if (card.classList.contains('split-active')) {
+            state.pageOrder.forEach((pageObj, index) => {
+                currentGroup.push(pageObj);
+
+                if (
+                    state.splits.has(pageObj.id) &&
+                    index < state.pageOrder.length - 1
+                ) {
                     groups.push(currentGroup);
                     currentGroup = [];
                 }
             });
-            groups.push(currentGroup);
+
+            if (currentGroup.length > 0) {
+                groups.push(currentGroup);
+            }
+
             return groups;
         }
 
+        function showPreviewAll() {
+            if (state.pageOrder.length === 0) return;
+
+            const cards = Array.from(workspace.querySelectorAll('.page-card'));
+            const groups = [];
+            let currentGroup = [];
+            let groupStart = 0;
+            state.pageOrder.forEach((pageObj) => {
+                currentGroup.push(pageObj);
+
+                if (state.splits.has(pageObj.id)) {
+                    groups.push({
+                        pages: currentGroup
+                    });
+                    currentGroup = [];
+                }
+            });
+            if (currentGroup.length > 0) {
+                groups.push({ pages: currentGroup, firstCardIndex: groupStart });
+            }
+
+            const headers = Array.from(workspace.querySelectorAll('.segment-header')).filter(h =>
+                h.classList.contains('force-show') || h.previousElementSibling.classList.contains('split-active')
+            );
+
+            const body = document.getElementById('previewAllBody');
+            body.innerHTML = groups.map((group, i) => {
+                const nameInput = headers[i] ? headers[i].querySelector('.rename-input') : null;
+                const name = sanitizeFileName((nameInput && nameInput.value) || (nameInput && nameInput.placeholder) || `File ${i + 1}`);
+                const pageCount = group.pages.length;
+                return `
+                    <div class="preview-all-card" style="animation: cardPopIn 0.35s ease forwards; animation-delay: ${i * 45}ms; opacity: 0;">
+                        <div class="preview-all-thumb-wrap" id="preview-thumb-${i}">
+                            <i class="fa fa-spinner fa-spin" style="color:#cbd5e1; font-size:22px;"></i>
+                        </div>
+                        <div class="preview-all-name">${name}</div>
+                        <div class="preview-all-count">${pageCount} page${pageCount > 1 ? 's' : ''}</div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('previewAllModal').style.display = 'flex';
+            const previewModalContent = document.getElementById('previewAllModal').querySelector('div');
+            previewModalContent.classList.remove('modal-closing');
+            previewModalContent.classList.add('modal-animating');
+
+            groups.forEach(async (group, i) => {
+                const firstPage = group.pages[0];
+                const wrap = document.getElementById(`preview-thumb-${i}`);
+                if (!firstPage || !wrap) return;
+                try {
+                    const source = sourcePdfs.get(firstPage.fileId);
+                    const page = await source.pdfjsDoc.getPage(firstPage.originalIdx + 1);
+                    const viewport = page.getViewport({ scale: 10 });
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = viewport.width;
+                    tempCanvas.height = viewport.height;
+                    await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport }).promise;
+
+                    const img = document.createElement('img');
+                    img.src = tempCanvas.toDataURL('image/png');
+                    img.style.transform = `rotate(${firstPage.rotation}deg)`;
+                    img.style.animation = 'thumbFadeIn 0.35s ease forwards';
+                    wrap.innerHTML = '';
+                    wrap.appendChild(img);
+                } catch (e) {
+                    console.error(e);
+                    wrap.innerHTML = '<i class="fa fa-file" style="color:#cbd5e1; font-size:22px;"></i>';
+                }
+            });
+        }
+
+        function closePreviewAll() {
+            const previewModal = document.getElementById('previewAllModal');
+            const previewModalContent = previewModal.querySelector('div');
+
+            previewModalContent.classList.remove('modal-animating');
+            previewModalContent.classList.add('modal-closing');
+
+            setTimeout(() => {
+                previewModal.style.display = 'none';
+                previewModalContent.classList.remove('modal-closing');
+            }, 200);
+        }
+
+        function sanitizeFileName(name) {
+            return name.replace(/[\/\\:*?"<>|]/g, '');
+        }
+
         async function downloadSingleGroupFromDOM(headerIdx) {
-            showAlert("Preparing download...");
+            showAlert("Preparing download...", false);
             const groups = splitIntoGroups();
             const headers = Array.from(workspace.querySelectorAll('.segment-header')).filter(h =>
                 h.classList.contains('force-show') || h.previousElementSibling.classList.contains('split-active')
@@ -1418,13 +1677,13 @@ if (isset($_FILES['excel_file'])) {
 
             const bytes = await generatePdfBlob(groups[groupIdx]);
             const nameInput = headers[groupIdx].querySelector('.rename-input');
-            downloadBlob(bytes, nameInput.value || `Document_Page_${groupIdx + 1}`);
+            downloadBlob(bytes, sanitizeFileName(nameInput.value || `File ${groupIdx + 1}`));
             closeAlert();
         }
 
         async function exportPDF() {
             if (state.pageOrder.length === 0) return showAlert("No pages to export.");
-            showAlert("Generating ZIP file...");
+            showAlert("Generating ZIP file...", false);
             const zip = new JSZip();
             const groups = splitIntoGroups();
             const headers = Array.from(workspace.querySelectorAll('.segment-header')).filter(h =>
@@ -1433,7 +1692,7 @@ if (isset($_FILES['excel_file'])) {
 
             for (let i = 0; i < groups.length; i++) {
                 const bytes = await generatePdfBlob(groups[i]);
-                const name = headers[i].querySelector('.rename-input').value || `Document_Page_${i + 1}`;
+                const name = sanitizeFileName(headers[i].querySelector('.rename-input').value || `File ${i + 1}`);
                 zip.file(name.toLowerCase().endsWith('.pdf') ? name : name + '.pdf', bytes);
             }
             const content = await zip.generateAsync({
@@ -1453,10 +1712,6 @@ if (isset($_FILES['excel_file'])) {
                 if (!cache.has(pageObj.fileId)) cache.set(pageObj.fileId, await PDFDocument.load(cloneBuffer(sourcePdfs.get(pageObj.fileId).buffer)));
                 const srcDoc = cache.get(pageObj.fileId);
                 const [copiedPage] = await newDoc.copyPages(srcDoc, [pageObj.originalIdx]);
-
-                // Apply Adobe-style overlay edits (text, highlight, drawing and whiteout).
-                await applyPdfEdits(copiedPage, pageObj);
-
                 if (pageObj.rotation !== 0) copiedPage.setRotation(degrees(pageObj.rotation));
                 newDoc.addPage(copiedPage);
             }
@@ -1473,13 +1728,65 @@ if (isset($_FILES['excel_file'])) {
             a.click();
         }
 
-        function showAlert(msg) {
+        function confirmClearAll() {
+            if (state.pageOrder.length === 0) {
+                location.reload();
+                return;
+            }
+            const overlay = document.getElementById('confirmOverlay');
+            const box = overlay.querySelector('.loading-box');
+            overlay.style.display = 'flex';
+            box.classList.remove('modal-closing');
+            box.classList.add('modal-animating');
+        }
+
+        function closeConfirmClearAll() {
+            const overlay = document.getElementById('confirmOverlay');
+            const box = overlay.querySelector('.loading-box');
+            box.classList.remove('modal-animating');
+            box.classList.add('modal-closing');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                box.classList.remove('modal-closing');
+            }, 200);
+        }
+
+        function confirmGoHome() {
+            if (state.pageOrder.length === 0) return true;
+            const overlay = document.getElementById('homeConfirmOverlay');
+            const box = overlay.querySelector('.loading-box');
+            overlay.style.display = 'flex';
+            box.classList.remove('modal-closing');
+            box.classList.add('modal-animating');
+            return false;
+        }
+
+        function closeHomeConfirm() {
+            const overlay = document.getElementById('homeConfirmOverlay');
+            const box = overlay.querySelector('.loading-box');
+            box.classList.remove('modal-animating');
+            box.classList.add('modal-closing');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                box.classList.remove('modal-closing');
+            }, 200);
+        }
+
+        function showAlert(msg, showButton = true) {
+            if (!showButton) {
+                document.getElementById('loadingTitle').innerText = msg;
+                document.getElementById('loadingOverlay').style.display = 'block';
+                return;
+            }
+            document.getElementById('alertTitle').innerText = "Status";
             document.getElementById('alertMessage').innerText = msg;
+            document.getElementById('alertBtn').style.display = 'inline-flex';
             document.getElementById('customAlert').style.display = 'flex';
         }
 
         function closeAlert() {
             document.getElementById('customAlert').style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'none';
         }
 
         // Preview zoom and pan
@@ -1502,411 +1809,6 @@ if (isset($_FILES['excel_file'])) {
             translateY = e.clientY - startY;
             updateImageTransform();
         });
-
-        /* ==================== PDF EDITOR ==================== */
-
-        function getEditorKey(pageObj) {
-            return `${pageObj.fileId}:${pageObj.originalIdx}`;
-        }
-
-        function getEditorEdits(pageObj) {
-            const key = getEditorKey(pageObj);
-            if (!pdfEdits.has(key)) pdfEdits.set(key, []);
-            return pdfEdits.get(key);
-        }
-
-        function openPdfEditor() {
-            if (!state.pageOrder.length) {
-                showAlert("Please add a PDF first.");
-                return;
-            }
-
-            // Edit the currently selected page, otherwise start at page 1.
-            const selected = Array.from(state.selectedIndices).sort((a, b) => a - b);
-            editorPageIndex = selected.length ? selected[0] : 0;
-            editorZoomLevel = 1;
-            editorTool = 'select';
-
-            document.getElementById('pdfEditorModal').classList.add('open');
-            setEditorTool('select');
-            renderEditorPage();
-        }
-
-        function closePdfEditor() {
-            document.getElementById('pdfEditorModal').classList.remove('open');
-            editorDrawing = false;
-            editorStart = null;
-            editorCurrentPath = [];
-        }
-
-        function saveEditorChanges() {
-            closePdfEditor();
-            renderWorkspace();
-            showAlert("PDF edits saved. Use Download All to export them.");
-            setTimeout(closeAlert, 1200);
-        }
-
-        function setEditorTool(tool) {
-            editorTool = tool;
-            document.querySelectorAll('[data-editor-tool]').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.editorTool === tool);
-            });
-
-            const canvas = document.getElementById('pdfEditorCanvas');
-            canvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
-        }
-
-        function editorPreviousPage() {
-            if (editorPageIndex > 0) {
-                editorPageIndex--;
-                renderEditorPage();
-            }
-        }
-
-        function editorNextPage() {
-            if (editorPageIndex < state.pageOrder.length - 1) {
-                editorPageIndex++;
-                renderEditorPage();
-            }
-        }
-
-        function editorZoom(direction) {
-            editorZoomLevel = Math.min(3, Math.max(.5, editorZoomLevel + direction * .15));
-            renderEditorPage();
-        }
-
-        async function renderEditorPage() {
-            const pageObj = state.pageOrder[editorPageIndex];
-            if (!pageObj) return;
-
-            const source = sourcePdfs.get(pageObj.fileId);
-            if (!source || !source.pdfjsDoc) return;
-
-            const page = await source.pdfjsDoc.getPage(pageObj.originalIdx + 1);
-            const baseScale = Math.min(
-                1.7,
-                Math.max(
-                    .8,
-                    (window.innerHeight - 150) / page.getViewport({ scale: 1 }).height
-                )
-            );
-            const scale = baseScale * editorZoomLevel;
-            const viewport = page.getViewport({ scale, rotation: 0 });
-
-            const canvas = document.getElementById('pdfEditorCanvas');
-            canvas.width = Math.ceil(viewport.width);
-            canvas.height = Math.ceil(viewport.height);
-
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            await page.render({ canvasContext: ctx, viewport }).promise;
-
-            editorBaseImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-            drawEditorOverlays(ctx, pageObj, viewport);
-
-            document.getElementById('pdfEditorTitle').textContent =
-                `Edit: ${pageObj.fileName || 'PDF'}`;
-            document.getElementById('pdfEditorPageInfo').textContent =
-                `Page ${editorPageIndex + 1} / ${state.pageOrder.length}`;
-        }
-
-        function drawEditorOverlays(ctx, pageObj, viewport) {
-            const edits = getEditorEdits(pageObj);
-
-            for (const edit of edits) {
-                if (edit.type === 'text') {
-                    const fontSize = edit.size * viewport.width / edit.pageWidth;
-                    ctx.save();
-                    ctx.fillStyle = edit.color;
-                    ctx.font = `${fontSize}px Arial, sans-serif`;
-                    ctx.textBaseline = 'top';
-                    ctx.fillText(edit.text, edit.x * viewport.width / edit.pageWidth,
-                        edit.y * viewport.height / edit.pageHeight);
-                    ctx.restore();
-                }
-
-                if (edit.type === 'highlight' || edit.type === 'whiteout') {
-                    ctx.save();
-                    ctx.globalAlpha = edit.type === 'highlight' ? .28 : 1;
-                    ctx.fillStyle = edit.type === 'whiteout' ? '#ffffff' : edit.color;
-                    ctx.fillRect(
-                        edit.x * viewport.width / edit.pageWidth,
-                        edit.y * viewport.height / edit.pageHeight,
-                        edit.w * viewport.width / edit.pageWidth,
-                        edit.h * viewport.height / edit.pageHeight
-                    );
-                    ctx.restore();
-                }
-
-                if (edit.type === 'draw') {
-                    if (!edit.points.length) continue;
-                    ctx.save();
-                    ctx.strokeStyle = edit.color;
-                    ctx.lineWidth = edit.size * viewport.width / edit.pageWidth;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                    ctx.beginPath();
-                    edit.points.forEach((pt, i) => {
-                        const x = pt.x * viewport.width / edit.pageWidth;
-                        const y = pt.y * viewport.height / edit.pageHeight;
-                        if (i === 0) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    });
-                    ctx.stroke();
-                    ctx.restore();
-                }
-            }
-        }
-
-        function editorPoint(e) {
-            const canvas = document.getElementById('pdfEditorCanvas');
-            const rect = canvas.getBoundingClientRect();
-            const sx = canvas.width / rect.width;
-            const sy = canvas.height / rect.height;
-            return {
-                x: (e.clientX - rect.left) * sx,
-                y: (e.clientY - rect.top) * sy
-            };
-        }
-
-        function editorPageCoordinates(point) {
-            const canvas = document.getElementById('pdfEditorCanvas');
-            return {
-                x: point.x / canvas.width,
-                y: point.y / canvas.height
-            };
-        }
-
-        const editorCanvas = document.getElementById('pdfEditorCanvas');
-
-        editorCanvas.addEventListener('mousedown', (e) => {
-            if (editorTool === 'select') return;
-
-            const point = editorPoint(e);
-            const pageObj = state.pageOrder[editorPageIndex];
-            const canvas = editorCanvas;
-            const edits = getEditorEdits(pageObj);
-            const pageWidth = canvas.width;
-            const pageHeight = canvas.height;
-
-            if (editorTool === 'text') {
-                const text = prompt("Enter text:");
-                if (!text) return;
-
-                const size = Number(document.getElementById('pdfEditorSize').value) * 3 + 10;
-                const color = document.getElementById('pdfEditorColor').value;
-
-                edits.push({
-                    type: 'text',
-                    text,
-                    x: point.x,
-                    y: point.y,
-                    size,
-                    color,
-                    pageWidth,
-                    pageHeight
-                });
-                renderEditorPage();
-                return;
-            }
-
-            editorDrawing = true;
-            editorStart = point;
-
-            if (editorTool === 'draw') {
-                editorCurrentPath = [point];
-            }
-        });
-
-        editorCanvas.addEventListener('mousemove', (e) => {
-            if (!editorDrawing) return;
-
-            const point = editorPoint(e);
-            const canvas = editorCanvas;
-            const ctx = canvas.getContext('2d');
-
-            if (editorTool === 'draw') {
-                const last = editorCurrentPath[editorCurrentPath.length - 1];
-                editorCurrentPath.push(point);
-
-                ctx.save();
-                ctx.strokeStyle = document.getElementById('pdfEditorColor').value;
-                ctx.lineWidth = Number(document.getElementById('pdfEditorSize').value);
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.beginPath();
-                ctx.moveTo(last.x, last.y);
-                ctx.lineTo(point.x, point.y);
-                ctx.stroke();
-                ctx.restore();
-                return;
-            }
-
-            // Live rectangle preview for highlight/whiteout.
-            if (editorTool === 'highlight' || editorTool === 'whiteout') {
-                if (editorBaseImage) ctx.putImageData(editorBaseImage, 0, 0);
-                const pageObj = state.pageOrder[editorPageIndex];
-                drawEditorOverlays(ctx, pageObj, {
-                    width: canvas.width,
-                    height: canvas.height
-                });
-
-                const x = Math.min(editorStart.x, point.x);
-                const y = Math.min(editorStart.y, point.y);
-                const w = Math.abs(point.x - editorStart.x);
-                const h = Math.abs(point.y - editorStart.y);
-
-                ctx.save();
-                ctx.globalAlpha = editorTool === 'highlight' ? .28 : 1;
-                ctx.fillStyle = editorTool === 'whiteout' ? '#ffffff' :
-                    document.getElementById('pdfEditorColor').value;
-                ctx.fillRect(x, y, w, h);
-                ctx.restore();
-            }
-        });
-
-        function finishEditorPointer(e) {
-            if (!editorDrawing) return;
-            editorDrawing = false;
-
-            const pageObj = state.pageOrder[editorPageIndex];
-            const edits = getEditorEdits(pageObj);
-            const canvas = editorCanvas;
-            const end = editorPoint(e);
-            const color = document.getElementById('pdfEditorColor').value;
-            const size = Number(document.getElementById('pdfEditorSize').value);
-
-            if (editorTool === 'draw' && editorCurrentPath.length > 1) {
-                edits.push({
-                    type: 'draw',
-                    points: editorCurrentPath,
-                    color,
-                    size,
-                    pageWidth: canvas.width,
-                    pageHeight: canvas.height
-                });
-            }
-
-            if (editorTool === 'highlight' || editorTool === 'whiteout') {
-                const x = Math.min(editorStart.x, end.x);
-                const y = Math.min(editorStart.y, end.y);
-                const w = Math.abs(end.x - editorStart.x);
-                const h = Math.abs(end.y - editorStart.y);
-
-                if (w > 2 && h > 2) {
-                    edits.push({
-                        type: editorTool,
-                        x, y, w, h,
-                        color,
-                        pageWidth: canvas.width,
-                        pageHeight: canvas.height
-                    });
-                }
-            }
-
-            editorStart = null;
-            editorCurrentPath = [];
-            renderEditorPage();
-        }
-
-        editorCanvas.addEventListener('mouseup', finishEditorPointer);
-        editorCanvas.addEventListener('mouseleave', (e) => {
-            if (editorDrawing) finishEditorPointer(e);
-        });
-
-        function undoEditorEdit() {
-            const pageObj = state.pageOrder[editorPageIndex];
-            const edits = getEditorEdits(pageObj);
-            if (edits.length) {
-                edits.pop();
-                renderEditorPage();
-            }
-        }
-
-        function clearEditorPage() {
-            const pageObj = state.pageOrder[editorPageIndex];
-            const edits = getEditorEdits(pageObj);
-            if (!edits.length) return;
-            if (confirm("Remove all edits from this page?")) {
-                edits.length = 0;
-                renderEditorPage();
-            }
-        }
-
-        function hexToRgb(hex) {
-            const value = hex.replace('#', '');
-            const n = parseInt(value, 16);
-            return {
-                r: (n >> 16) & 255,
-                g: (n >> 8) & 255,
-                b: n & 255
-            };
-        }
-
-        async function applyPdfEdits(pdfPage, pageObj) {
-            const edits = pdfEdits.get(getEditorKey(pageObj));
-            if (!edits || !edits.length) return;
-
-            const pageWidth = pdfPage.getWidth();
-            const pageHeight = pdfPage.getHeight();
-
-            for (const edit of edits) {
-                const sx = pageWidth / edit.pageWidth;
-                const sy = pageHeight / edit.pageHeight;
-
-                if (edit.type === 'text') {
-                    const rgb = hexToRgb(edit.color);
-                    const fontSize = edit.size * sx;
-                    pdfPage.drawText(edit.text, {
-                        x: edit.x * sx,
-                        y: pageHeight - (edit.y * sy) - fontSize,
-                        size: fontSize,
-                        color: PDFLib.rgb(rgb.r / 255, rgb.g / 255, rgb.b / 255)
-                    });
-                }
-
-                if (edit.type === 'highlight' || edit.type === 'whiteout') {
-                    const rgb = edit.type === 'whiteout'
-                        ? { r: 255, g: 255, b: 255 }
-                        : hexToRgb(edit.color);
-
-                    pdfPage.drawRectangle({
-                        x: edit.x * sx,
-                        y: pageHeight - (edit.y + edit.h) * sy,
-                        width: edit.w * sx,
-                        height: edit.h * sy,
-                        color: PDFLib.rgb(rgb.r / 255, rgb.g / 255, rgb.b / 255),
-                        opacity: edit.type === 'highlight' ? .28 : 1
-                    });
-                }
-
-                if (edit.type === 'draw' && edit.points.length > 1) {
-                    const rgb = hexToRgb(edit.color);
-                    const lineWidth = Math.max(1, edit.size * sx);
-
-                    for (let i = 1; i < edit.points.length; i++) {
-                        const a = edit.points[i - 1];
-                        const b = edit.points[i];
-
-                        pdfPage.drawLine({
-                            start: {
-                                x: a.x * sx,
-                                y: pageHeight - a.y * sy
-                            },
-                            end: {
-                                x: b.x * sx,
-                                y: pageHeight - b.y * sy
-                            },
-                            thickness: lineWidth,
-                            color: PDFLib.rgb(rgb.r / 255, rgb.g / 255, rgb.b / 255),
-                            lineCap: PDFLib.LineCapStyle?.Round
-                        });
-                    }
-                }
-            }
-        }
-
         window.addEventListener('mouseup', () => isDragging = false);
     </script>
 </body>
