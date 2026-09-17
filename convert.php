@@ -1,8 +1,8 @@
 <?php
 
 // Load Composer libraries
-if (file_exists('vendor/autoload.php')) {
-    require 'vendor/autoload.php';
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require __DIR__ . '/vendor/autoload.php';
 }
 
 use Smalot\PdfParser\Parser;
@@ -421,8 +421,9 @@ if (isset($_POST["submit"])) {
                 @unlink($file['path']);
             }
             exit;
-        } catch (Exception $e) {
-            $message = "<div style='color:red;'>Error: " . $e->getMessage() . "</div>";
+        } catch (\Throwable $e) {
+            error_log("Conversion error: " . $e->getMessage());
+            $message = "<div style='color:red;'>Sorry, we don't have this feature yet.</div>";
         }
     } else {
         $message = "<div style='color:red;'>Please upload a valid file.</div>";
@@ -855,7 +856,7 @@ if (isset($_POST["submit"])) {
             margin-top: 20px;
             padding: 15px;
             background: #f9fafb;
-            border-left: 4px solid var(--primary, #111827);
+            border-left: 4px solid red;
             border-radius: 6px;
             font-size: 14px;
             word-break: break-word;
@@ -896,26 +897,6 @@ if (isset($_POST["submit"])) {
             padding: 45px 50px;
             border-radius: 20px;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
-        }
-
-        .spinner {
-            border: 4px solid #f1f5f9;
-            border-top: 4px solid #111827;
-            border-radius: 50%;
-            width: 42px;
-            height: 42px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
         }
 
         .loading-dots {
@@ -1120,11 +1101,36 @@ if (isset($_POST["submit"])) {
             <input type="submit" value="Convert" name="submit">
         </form>
         <?php if ($message): ?>
-            <div class="result"><?php echo $message; ?></div>
+            <div class="result" id="resultBanner">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+                    <div style="flex:1;"><?php echo $message; ?></div>
+                    <i class="fa fa-times" style="cursor:pointer; color:#94a3b8; margin-top:2px;"
+                        onclick="document.getElementById('resultBanner').remove()"></i>
+                </div>
+            </div>
         <?php endif; ?>
     </div>
 
-    <a href="index.html" class="home-btn" title="Back to Home"><i class="fa fa-home"></i></a>
+    <a href="index.html" class="home-btn" title="Back to Home" onclick="return confirmGoHome()"><i
+            class="fa fa-home"></i></a>
+
+    <div id="homeConfirmOverlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255, 255, 255, 0.85); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center;">
+        <div class="loading-box" style="position:static; transform:none; max-width:320px; width:90%;">
+            <i class="fa-solid fa-triangle-exclamation"
+                style="font-size:50px; color:#ef4444; margin-bottom:20px; display:inline-block;"></i>
+            <p style="margin:0; font-weight:bold; color:#ef4444; margin-bottom:20px;">Leave this page?</p>
+            <p style="margin:0 0 20px; font-size:13px; color:#666;">Your selected files will be lost.</p>
+            <div style="display:flex; gap:20px; justify-content:center;">
+                <button
+                    style="flex:1; justify-content:center; background:#fff; color:#333; border:1px solid #e2e8f0; padding:10px 25px; border-radius:20px; cursor:pointer; font-weight:600;"
+                    onclick="closeHomeConfirm()">Cancel</button>
+                <button class="btn-main"
+                    style="flex:1; justify-content:center; background:#ef4444 !important; margin-top:0;"
+                    onclick="window.location.href='index.html'">Yes</button>
+            </div>
+        </div>
+    </div>
 
     <div id="customAlert" class="modal-overlay">
         <div
@@ -1137,7 +1143,8 @@ if (isset($_POST["submit"])) {
 
     <div id="loadingOverlay">
         <div class="loading-box">
-            <div class="spinner"></div>
+            <i class="fa fa-spinner fa-spin"
+                style="font-size:28px; color:var(--primary, #1e293b); margin-bottom:14px; display:inline-block;"></i>
             <p style="margin:0; font-weight:bold; color:#333;">Processing...</p>
             <p style="margin:10px 0 0; font-size:13px; color:#999;">Please wait...</p>
         </div>
@@ -1211,11 +1218,11 @@ if (isset($_POST["submit"])) {
         function showHelp() {
             const helpText = `
             <div id="help-content">
-                <strong>Support:</strong>
+                <strong>Support:
                 <ul>
                     <li><strong>Images - PDF</li>
                     <li><strong>Word - PDF</li>
-                     <li><strong>Word - Excel</li>
+                    <li><strong>Word - Excel</li>
                     <li><strong>Excel - PDF</li>
                     <li><strong>PDF - Word</li>
                     <li><strong>PDF - PPT</li>
@@ -1266,6 +1273,27 @@ if (isset($_POST["submit"])) {
             }, 200);
         }
 
+        function confirmGoHome() {
+            if (selectedFiles.length === 0) return true;
+            const overlay = document.getElementById('homeConfirmOverlay');
+            const box = overlay.querySelector('.loading-box');
+            overlay.style.display = 'flex';
+            box.classList.remove('modal-closing');
+            box.classList.add('modal-animating');
+            return false;
+        }
+
+        function closeHomeConfirm() {
+            const overlay = document.getElementById('homeConfirmOverlay');
+            const box = overlay.querySelector('.loading-box');
+            box.classList.remove('modal-animating');
+            box.classList.add('modal-closing');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                box.classList.remove('modal-closing');
+            }, 200);
+        }
+
         function showAlert(message, title = "Status") {
             document.getElementById('alertTitle').innerText = title;
             document.getElementById('alertMessage').innerText = message;
@@ -1297,11 +1325,8 @@ if (isset($_POST["submit"])) {
             return extIconMap[ext] || 'fa-file';
         }
 
-        // Holds the running selection across multiple picks/drops
         let selectedFiles = [];
 
-        // Merge newly picked/dropped files into the existing selection
-        // (skips exact duplicates by name + size) and re-syncs the input
         function addFiles(newFiles) {
 
             Array.from(newFiles).forEach(file => {
@@ -1317,7 +1342,6 @@ if (isset($_POST["submit"])) {
             renderFileList();
         }
 
-        // Rebuilds the real <input type="file"> FileList from selectedFiles
         function syncFileInput() {
 
             const dt = new DataTransfer();
@@ -1399,6 +1423,9 @@ if (isset($_POST["submit"])) {
                     document.getElementById('loadingOverlay').style.display = 'none';
                     document.cookie = "fileDownload=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                     clearInterval(checkTimer);
+
+                    const oldBanner = document.getElementById('resultBanner');
+                    if (oldBanner) oldBanner.remove();
                 }
             }, 500);
         };
